@@ -1,0 +1,5 @@
+{
+	"board": "teensy:avr:teensy41",
+	"port": "/dev/tty.usbmodem113138701",
+	"sketch": "demos/disco_ball_demo/disco_ball_demo.ino"
+}

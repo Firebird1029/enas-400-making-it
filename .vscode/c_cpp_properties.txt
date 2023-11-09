@@ -1,0 +1,9 @@
+arduino.json
+
+https://arduino.stackexchange.com/questions/45347/warning-when-verifying-sketch-with-vs-code
+
+c_cpp_properties.json
+
+PUT IN includePath:
+
+"/Users/brandon/Documents/Arduino/libraries/**",
