@@ -12,16 +12,32 @@
 // give it a name:
 int led = 13;
 
+int numLasers = 3;
+int laserPins[] = {2, 3, 4};
+int laserPinStatus[] = {LOW, LOW, LOW};
+int primes[] = {7, 11, 17};
+
 // the setup routine runs once when you press reset:
 void setup() {
   // initialize the digital pin as an output.
   pinMode(led, OUTPUT);
+
+  for (size_t i = 0; i < numLasers; i++) {
+    pinMode(laserPins[i], OUTPUT);
+  }
 }
 
 // the loop routine runs over and over again forever:
+int globalCount = 0;
+
 void loop() {
-  digitalWrite(led, HIGH);  // turn the LED on (HIGH is the voltage level)
-  delay(1000);              // wait for a second
-  digitalWrite(led, LOW);   // turn the LED off by making the voltage LOW
-  delay(1000);              // wait for a second
+  for (size_t i = 0; i < numLasers; i++) {
+    if (globalCount % primes[i]) {
+      digitalWrite(laserPins[i], laserPinStatus[i]);
+      laserPinStatus[i] = !laserPinStatus[i];
+    }
+  }
+
+  globalCount = (globalCount + 1) % 10000;
+  delay(100);
 }
