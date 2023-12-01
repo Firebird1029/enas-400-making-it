@@ -19,6 +19,7 @@
 
 // MUSIC
 #define WAVEFORM_VOLUME 0.3
+#define RANDOM_OFFSET 2  // 0 for no randomness
 #define ENV_ATTACK 10.5
 #define ENV_HOLD 30    // 2.5
 #define ENV_DECAY 400  // 35
@@ -47,6 +48,8 @@ const int BTN_PINS[] = {BTN_1_PIN, BTN_2_PIN, BTN_3_PIN, BTN_4_PIN, BTN_5_PIN};
 
 // GLOBAL VARIABLES
 // elapsedMillis timer;  // master timer (auto-incrementing)
+int lastButtonPressed = -1;  // for random scales
+int lastNote = 0;            // for random scales
 
 // PJRC CODE
 
@@ -110,10 +113,25 @@ void loop() {
       Serial.print(i);
       Serial.println(" pressed");
 
-      int semitones = mapScale(PENTATONIC, i);
-      waveform1.frequency(BASE_FREQ * pow(2, semitones / 12.0));
+      // static scale
+      // int semitones = mapScale(PENTATONIC, i);
 
+      // random melody
+      lastNote = mapRandomScale(PENTATONIC, lastNote, i - lastButtonPressed);
+
+      // TODO: this depends on BASE_FREQ!
+      // clip lastNote between -10 and 30
+      lastNote = max(-10, min(30, lastNote));
+      int semitones = lastNote;
+
+      // play note
+      Serial.print("Playing note ");
+      Serial.println(semitones);
+
+      waveform1.frequency(BASE_FREQ * pow(2, semitones / 12.0));
       envelope1.noteOn();
+
+      lastButtonPressed = i;
     }
   }
 
@@ -123,7 +141,7 @@ void loop() {
 // HELPER FUNCTIONS
 const int majorScale[8] = {0, 2, 4, 5, 7, 9, 11, 12};
 const int minorScale[8] = {0, 2, 3, 5, 7, 8, 10, 12};
-const int pentatonicScale[6] = {0, 2, 4, 7, 9, 12};
+const int pentatonicScale[12] = {0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24};
 int mapScale(SCALE_TYPE scaleType, int step) {
   if (step == -1) {
     return -1;
@@ -137,6 +155,27 @@ int mapScale(SCALE_TYPE scaleType, int step) {
   } else if (scaleType == PENTATONIC) {
     // convert step (from 0-5 inclusive) to a pentatonic scale
     return pentatonicScale[step];
+  }
+
+  return step;
+}
+
+int mapRandomScale(SCALE_TYPE scaleType, int step, int stepChange) {
+  if (stepChange == 0) {
+    // if you hit same note, play same note
+    return step;
+  }
+  if (scaleType == PENTATONIC) {
+    // if RANDOM_OFFSET is 1 and:
+    // if stepChange is 1 (adjacent piano key was pressed), then simulate
+    // pressing a piano key 1 to 1+RANDOM_OFFSET=2 (inclusive) steps away
+    // if stepChange is 2 (piano key 2 steps away was pressed), then simulate
+    // pressing a piano key 1 to 2+RANDOM_OFFSET=3 (inclusive) steps away
+    int delta = random(1, abs(stepChange) + RANDOM_OFFSET + 1);
+
+    // (current semitones away from base freq) + (semitones given steps away
+    // from current note) * (direction)
+    return step + pentatonicScale[delta] * (stepChange > 0 ? 1 : -1);
   }
 
   return step;
