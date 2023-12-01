@@ -6,5 +6,10 @@
 			"strings": "off"
 		}
 	},
-	"errorLens.exclude": []
+	"errorLens.exclude": [
+		"object of abstract class type \"AudioMixer4\" is not allowed",
+		"class \"AudioMixer4\" has no member \"gain\"",
+		"object of abstract class type \"AudioMixer4\" is not allowed:",
+		"pure virtual function \"AudioStream::update\" has no overrider"
+	]
 }
