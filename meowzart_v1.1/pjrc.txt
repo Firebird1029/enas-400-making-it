@@ -1,9 +1,15 @@
 // GUItool: begin automatically generated code
-AudioSynthWaveform       waveform1;      //xy=107,85
-AudioEffectEnvelope      envelope1;      //xy=282,85
-AudioOutputI2S           i2s1;           //xy=457,85
-AudioConnection          patchCord1(waveform1, envelope1);
-AudioConnection          patchCord2(envelope1, 0, i2s1, 0);
-AudioConnection          patchCord3(envelope1, 0, i2s1, 1);
+AudioPlaySdWav           playSdWav1;     //xy=90,252
+AudioSynthWaveform       waveform1;      //xy=107.5,85
+AudioEffectFade          fade1;          //xy=250,246
+AudioEffectEnvelope      envelope1;      //xy=282.5,85
+AudioMixer4              mixer1;         //xy=600,165
+AudioOutputI2S           i2s1;           //xy=746.5,167
+AudioConnection          patchCord1(playSdWav1, 0, fade1, 0);
+AudioConnection          patchCord2(waveform1, envelope1);
+AudioConnection          patchCord3(fade1, 0, mixer1, 1);
+AudioConnection          patchCord4(envelope1, 0, mixer1, 0);
+AudioConnection          patchCord5(mixer1, 0, i2s1, 0);
+AudioConnection          patchCord6(mixer1, 0, i2s1, 1);
 AudioControlSGTL5000     sgtl5000_1;     //xy=64.5,20
 // GUItool: end automatically generated code

@@ -76,22 +76,29 @@ unsigned long int hideFeatherAt[NUM_KEYS] = {0, 0, 0, 0, 0, 0};
 elapsedMillis timer;         // master timer (auto-incrementing)
 int lastButtonPressed = -1;  // for random scales
 int lastNote = 0;            // for random scales
-int playMode = 1;
+int playMode = 10;           // TODO change back to 1
 /*
  * PLAY MODES:
  * 1 = major scale, random feathers
  * 10 = set track from SD card, random feathers
  */
+unsigned long int stopAudioTrackAt = 0;
 
 // PJRC CODE
 
 // GUItool: begin automatically generated code
-AudioSynthWaveform waveform1;   // xy=107,85
-AudioEffectEnvelope envelope1;  // xy=282,85
-AudioOutputI2S i2s1;            // xy=457,85
-AudioConnection patchCord1(waveform1, envelope1);
-AudioConnection patchCord2(envelope1, 0, i2s1, 0);
-AudioConnection patchCord3(envelope1, 0, i2s1, 1);
+AudioPlaySdWav playSdWav1;      // xy=90,252
+AudioSynthWaveform waveform1;   // xy=107.5,85
+AudioEffectFade fade1;          // xy=250,246
+AudioEffectEnvelope envelope1;  // xy=282.5,85
+AudioMixer4 mixer1;             // xy=600,165
+AudioOutputI2S i2s1;            // xy=746.5,167
+AudioConnection patchCord1(playSdWav1, 0, fade1, 0);
+AudioConnection patchCord2(waveform1, envelope1);
+AudioConnection patchCord3(fade1, 0, mixer1, 1);
+AudioConnection patchCord4(envelope1, 0, mixer1, 0);
+AudioConnection patchCord5(mixer1, 0, i2s1, 0);
+AudioConnection patchCord6(mixer1, 0, i2s1, 1);
 AudioControlSGTL5000 sgtl5000_1;  // xy=64.5,20
 // GUItool: end automatically generated code
 
@@ -112,6 +119,12 @@ void setup(void) {
   envelope1.sustain(ENV_SUSTAIN);
   envelope1.release(ENV_RELEASE);
 
+  // MIXER SETUP
+  mixer1.gain(0, 1.0);  // piano
+  mixer1.gain(1, 1.0);  // set track from SD
+  mixer1.gain(2, 0.0);
+  mixer1.gain(3, 0.0);
+
   // FINISH AUDIO SETUP
   sgtl5000_1.enable();
   sgtl5000_1.volume(MASTER_VOLUME);
@@ -129,6 +142,14 @@ void setup(void) {
   pwm.setOscillatorFrequency(27000000);
   pwm.setPWMFreq(SERVO_FREQ);  // Analog servos run at ~50 Hz updates
 
+  // SD SETUP
+  if (!SD.begin(BUILTIN_SDCARD)) {
+    Serial.println("Unable to access SD Card");
+    while (true) {
+      delay(10);
+    }
+  }
+
   // SETUP DONE
   Serial.println("Finished setup.");
   delay(100);
@@ -137,6 +158,14 @@ void setup(void) {
 void loop() {
   buttonCode();
   servoCode();
+
+  // stop SD audio track if applicable
+  if (playMode == 10 && stopAudioTrackAt != 0 && timer >= stopAudioTrackAt) {
+    Serial.println("Stopping audio track");
+    fade1.fadeOut(5000);
+    stopAudioTrackAt = 0;
+  }
+
   delay(10);
 }
 
@@ -154,25 +183,53 @@ void buttonCode() {
       Serial.print(i);
       Serial.println(" pressed");
 
-      // static scale
-      //   int semitones = mapScale(PENTATONIC, i);
-      int semitones = mapScale(MAJOR, i);
+      int semitones;
+      switch (playMode) {
+        case 1:
+          // major scale
 
-      // random melody
-      //   lastNote = mapRandomScale(PENTATONIC, lastNote, i -
-      //   lastButtonPressed);
+          // static scale
+          //   int semitones = mapScale(PENTATONIC, i);
+          semitones = mapScale(MAJOR, i);
 
-      //   // TODO: this depends on BASE_FREQ!
-      //   // clip lastNote between -10 and 30
-      //   lastNote = max(-10, min(30, lastNote));
-      //   int semitones = lastNote;
+          // random melody
+          //   lastNote = mapRandomScale(PENTATONIC, lastNote, i -
+          //   lastButtonPressed);
 
-      // play note
-      Serial.print("Playing note ");
-      Serial.println(semitones);
+          //   // TODO: this depends on BASE_FREQ!
+          //   // clip lastNote between -10 and 30
+          //   lastNote = max(-10, min(30, lastNote));
+          //   int semitones = lastNote;
 
-      waveform1.frequency(BASE_FREQ * pow(2, semitones / 12.0));
-      envelope1.noteOn();
+          // play note
+          Serial.print("Playing note ");
+          Serial.println(semitones);
+
+          waveform1.frequency(BASE_FREQ * pow(2, semitones / 12.0));
+          envelope1.noteOn();
+          break;
+
+        case 10:
+          // set track from SD card
+          if (stopAudioTrackAt == 0) {
+            // audio not currently playing, so play audio
+            Serial.println("Playing mariah.wav");
+            fade1.fadeIn(100);
+
+            // start track if not playing, else resume from where
+            // it left off
+            if (!playSdWav1.isPlaying()) {
+              playSdWav1.play("mariah.wav");
+            }
+          }
+
+          stopAudioTrackAt = timer + 10000;  // stop track 10 sec later
+
+          break;
+
+        default:
+          break;
+      }
 
       lastButtonPressed = i;
     }
