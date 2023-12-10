@@ -39,16 +39,15 @@ enum SCALE_TYPE { MAJOR, MINOR, PENTATONIC };
 #define BTN_6_PIN 33
 
 // BUTTONS
-#define NUM_BUTTONS 6
-Button allButtons[NUM_BUTTONS] = {Button(), Button(), Button(),
-                                  Button(), Button(), Button()};
-const int BTN_PINS[NUM_BUTTONS] = {BTN_1_PIN, BTN_2_PIN, BTN_3_PIN,
-                                   BTN_4_PIN, BTN_5_PIN, BTN_6_PIN};
+#define NUM_KEYS 6
+Button allButtons[NUM_KEYS] = {Button(), Button(), Button(),
+                               Button(), Button(), Button()};
+const int BTN_PINS[NUM_KEYS] = {BTN_1_PIN, BTN_2_PIN, BTN_3_PIN,
+                                BTN_4_PIN, BTN_5_PIN, BTN_6_PIN};
 
 // SERVOS
-Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40, Wire2);
 // This is the 'minimum' pulse length count (out of 4096)
-#define SERVO_MIN 150
+#define SERVO_MIN 150  // 150
 // This is the 'maximum' pulse length count (out of 4096)
 #define SERVO_MAX 250  // 600
 // This is the rounded 'minimum' microsecond length based on the minimum pulse
@@ -59,6 +58,19 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40, Wire2);
 #define SERVO_USMAX 2400
 // Analog servos run at ~50 Hz updates
 #define SERVO_FREQ 50
+
+#define FEATHER_HIDDEN SERVO_MAX
+#define FEATHER_SHOWN SERVO_MIN
+
+Adafruit_PWMServoDriver pwm =
+    Adafruit_PWMServoDriver(0x40, Wire2);  // use the 3RD I2C bus on Teensy 4.1
+// first I2C bus (Wire) conflicts with audio shield, second (Wire1) doesn't have
+// PWM, so use third (Wire2)
+
+// 0 -> feather already hidden, if >0 -> hide feather at this timestamp
+unsigned long int lastFeatherAction =
+    0;  // timestamp of last time feather popped up
+unsigned long int hideFeatherAt[NUM_KEYS] = {0, 0, 0, 0, 0, 0};
 
 // GLOBAL VARIABLES
 elapsedMillis timer;         // master timer (auto-incrementing)
@@ -106,7 +118,7 @@ void setup(void) {
   AudioInterrupts();
 
   // BUTTON SETUP
-  for (int i = 0; i < NUM_BUTTONS; i++) {
+  for (int i = 0; i < NUM_KEYS; i++) {
     allButtons[i].attach(BTN_PINS[i], INPUT_PULLUP);
     allButtons[i].interval(5);
     allButtons[i].setPressedState(LOW);
@@ -131,12 +143,12 @@ void loop() {
 // BUTTON CODE
 void buttonCode() {
   // update buttons
-  for (int i = 0; i < NUM_BUTTONS; i++) {
+  for (int i = 0; i < NUM_KEYS; i++) {
     allButtons[i].update();
   }
 
   // if a button is pressed, play a note
-  for (int i = 0; i < NUM_BUTTONS; i++) {
+  for (int i = 0; i < NUM_KEYS; i++) {
     if (allButtons[i].fell()) {
       Serial.print("Button ");
       Serial.print(i);
@@ -169,10 +181,30 @@ void buttonCode() {
 
 // SERVO CODE
 void servoCode() {
-  pwm.setPWM(0, 0, SERVO_MAX);
-  // delay(1000);
-  // pwm.setPWM(0, 0, SERVO_MIN);
-  // delay(1000);
+  // hide feather if its hide time has arrived
+  for (int i = 0; i < NUM_KEYS; i++) {
+    if (hideFeatherAt[i] != 0 && timer >= hideFeatherAt[i]) {
+      Serial.print("Hiding feather ");
+      Serial.println(i);
+      hideFeatherAt[i] = 0;
+      pwm.setPWM(i, 0, FEATHER_HIDDEN);
+    }
+  }
+
+  // (potentially) show random feather every 2-3 seconds
+  if (timer >= lastFeatherAction + random(2000, 3000)) {
+    lastFeatherAction = timer;
+    int randomFeather = random(0, NUM_KEYS);
+    // if feather is already shown, ignore
+    if (hideFeatherAt[randomFeather] != 0) {
+      return;
+    }
+    Serial.print("Showing feather ");
+    Serial.println(randomFeather);
+    pwm.setPWM(randomFeather, 0, FEATHER_SHOWN);
+    hideFeatherAt[randomFeather] =
+        timer + random(2000, 4000);  // hide feather after 2-4 seconds
+  }
 }
 
 // HELPER FUNCTIONS
