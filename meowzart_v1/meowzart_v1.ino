@@ -18,8 +18,8 @@
 #define BASE_FREQ 349.23  // F4, default tonic
 
 // MUSIC
-#define WAVEFORM_VOLUME 0.3
-#define RANDOM_OFFSET 2  // 0 for no randomness
+#define WAVEFORM_VOLUME 0.7
+#define RANDOM_OFFSET 1  // 0 for no randomness
 #define ENV_ATTACK 10.5
 #define ENV_HOLD 30    // 2.5
 #define ENV_DECAY 400  // 35
@@ -29,22 +29,26 @@
 enum SCALE_TYPE { MAJOR, MINOR, PENTATONIC };
 
 // PINOUT
-#define BTN_1_PIN 28
-#define BTN_2_PIN 29
+#define BTN_1_PIN 32
+#define BTN_2_PIN 31
 #define BTN_3_PIN 30
-#define BTN_4_PIN 31
-#define BTN_5_PIN 32
+#define BTN_4_PIN 29
+#define BTN_5_PIN 28
+#define BTN_6_PIN 33
 
 // BUTTONS
+// TODO discard and switch to array
 Button btn1 = Button();
 Button btn2 = Button();
 Button btn3 = Button();
 Button btn4 = Button();
 Button btn5 = Button();
+Button btn6 = Button();
 
-#define NUM_BUTTONS 5
-Button allButtons[] = {btn1, btn2, btn3, btn4, btn5};
-const int BTN_PINS[] = {BTN_1_PIN, BTN_2_PIN, BTN_3_PIN, BTN_4_PIN, BTN_5_PIN};
+#define NUM_BUTTONS 6
+Button allButtons[] = {btn1, btn2, btn3, btn4, btn5, btn6};
+const int BTN_PINS[] = {BTN_1_PIN, BTN_2_PIN, BTN_3_PIN,
+                        BTN_4_PIN, BTN_5_PIN, BTN_6_PIN};
 
 // GLOBAL VARIABLES
 // elapsedMillis timer;  // master timer (auto-incrementing)
@@ -86,9 +90,6 @@ void setup(void) {
   AudioInterrupts();
 
   // BUTTON SETUP
-  btn1.attach(BTN_1_PIN, INPUT_PULLUP);
-  btn1.interval(5);
-  btn1.setPressedState(LOW);
   for (int i = 0; i < NUM_BUTTONS; i++) {
     allButtons[i].attach(BTN_PINS[i], INPUT_PULLUP);
     allButtons[i].interval(5);
@@ -114,15 +115,17 @@ void loop() {
       Serial.println(" pressed");
 
       // static scale
-      // int semitones = mapScale(PENTATONIC, i);
+      //   int semitones = mapScale(PENTATONIC, i);
+      int semitones = mapScale(MAJOR, i);
 
       // random melody
-      lastNote = mapRandomScale(PENTATONIC, lastNote, i - lastButtonPressed);
+      //   lastNote = mapRandomScale(PENTATONIC, lastNote, i -
+      //   lastButtonPressed);
 
-      // TODO: this depends on BASE_FREQ!
-      // clip lastNote between -10 and 30
-      lastNote = max(-10, min(30, lastNote));
-      int semitones = lastNote;
+      //   // TODO: this depends on BASE_FREQ!
+      //   // clip lastNote between -10 and 30
+      //   lastNote = max(-10, min(30, lastNote));
+      //   int semitones = lastNote;
 
       // play note
       Serial.print("Playing note ");
