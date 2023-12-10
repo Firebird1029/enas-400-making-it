@@ -1,9 +1,11 @@
+#include <Adafruit_PWMServoDriver.h>
 #include <Audio.h>
 #include <Bounce2.h>
 #include <SD.h>
 #include <SPI.h>
 #include <SerialFlash.h>
 #include <Wire.h>
+#include <elapsedMillis.h>
 
 /*
  * FUTURE
@@ -37,23 +39,37 @@ enum SCALE_TYPE { MAJOR, MINOR, PENTATONIC };
 #define BTN_6_PIN 33
 
 // BUTTONS
-// TODO discard and switch to array
-Button btn1 = Button();
-Button btn2 = Button();
-Button btn3 = Button();
-Button btn4 = Button();
-Button btn5 = Button();
-Button btn6 = Button();
-
 #define NUM_BUTTONS 6
-Button allButtons[] = {btn1, btn2, btn3, btn4, btn5, btn6};
-const int BTN_PINS[] = {BTN_1_PIN, BTN_2_PIN, BTN_3_PIN,
-                        BTN_4_PIN, BTN_5_PIN, BTN_6_PIN};
+Button allButtons[NUM_BUTTONS] = {Button(), Button(), Button(),
+                                  Button(), Button(), Button()};
+const int BTN_PINS[NUM_BUTTONS] = {BTN_1_PIN, BTN_2_PIN, BTN_3_PIN,
+                                   BTN_4_PIN, BTN_5_PIN, BTN_6_PIN};
+
+// SERVOS
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40, Wire2);
+// This is the 'minimum' pulse length count (out of 4096)
+#define SERVO_MIN 150
+// This is the 'maximum' pulse length count (out of 4096)
+#define SERVO_MAX 250  // 600
+// This is the rounded 'minimum' microsecond length based on the minimum pulse
+// of 150
+#define SERVO_USMIN 600
+// This is the rounded 'maximum' microsecond length based on the maximum pulse
+// of 600
+#define SERVO_USMAX 2400
+// Analog servos run at ~50 Hz updates
+#define SERVO_FREQ 50
 
 // GLOBAL VARIABLES
-// elapsedMillis timer;  // master timer (auto-incrementing)
+elapsedMillis timer;         // master timer (auto-incrementing)
 int lastButtonPressed = -1;  // for random scales
 int lastNote = 0;            // for random scales
+int playMode = 1;
+/*
+ * PLAY MODES:
+ * 1 = major scale, random feathers
+ * 10 = set track from SD card, random feathers
+ */
 
 // PJRC CODE
 
@@ -69,7 +85,7 @@ AudioControlSGTL5000 sgtl5000_1;  // xy=64.5,20
 
 void setup(void) {
   // SERIAL SETUP
-  Serial.begin(115200);
+  Serial.begin(9600);  // 115200
   Serial.println("Serial started");
 
   // INIT AUDIO SETUP
@@ -96,12 +112,24 @@ void setup(void) {
     allButtons[i].setPressedState(LOW);
   }
 
+  // SERVO SETUP
+  pwm.begin();
+  pwm.setOscillatorFrequency(27000000);
+  pwm.setPWMFreq(SERVO_FREQ);  // Analog servos run at ~50 Hz updates
+
   // SETUP DONE
   Serial.println("Finished setup.");
   delay(100);
 }
 
 void loop() {
+  buttonCode();
+  servoCode();
+  delay(10);
+}
+
+// BUTTON CODE
+void buttonCode() {
   // update buttons
   for (int i = 0; i < NUM_BUTTONS; i++) {
     allButtons[i].update();
@@ -137,8 +165,14 @@ void loop() {
       lastButtonPressed = i;
     }
   }
+}
 
-  delay(10);
+// SERVO CODE
+void servoCode() {
+  pwm.setPWM(0, 0, SERVO_MAX);
+  // delay(1000);
+  // pwm.setPWM(0, 0, SERVO_MIN);
+  // delay(1000);
 }
 
 // HELPER FUNCTIONS
