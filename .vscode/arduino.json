@@ -1,6 +1,6 @@
 {
 	"board": "teensy:avr:teensy41",
 	"port": "/dev/tty.usbmodem113138701",
-	"sketch": "meowzart_v1/meowzart_v1.ino",
+	"sketch": "meowzart_v1.1/meowzart_v1.1.ino",
 	"output": "build/"
 }
