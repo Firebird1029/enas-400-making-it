@@ -37,6 +37,7 @@ enum SCALE_TYPE { MAJOR, MINOR, PENTATONIC };
 #define BTN_4_PIN 29
 #define BTN_5_PIN 28
 #define BTN_6_PIN 33
+#define POT_PIN 38
 
 // BUTTONS
 #define NUM_KEYS 6
@@ -49,7 +50,7 @@ const int BTN_PINS[NUM_KEYS] = {BTN_1_PIN, BTN_2_PIN, BTN_3_PIN,
 // This is the 'minimum' pulse length count (out of 4096)
 #define SERVO_MIN 150  // 150
 // This is the 'maximum' pulse length count (out of 4096)
-#define SERVO_MAX 250  // 600
+#define SERVO_MAX 225  // 600
 // This is the rounded 'minimum' microsecond length based on the minimum pulse
 // of 150
 #define SERVO_USMIN 600
@@ -76,10 +77,11 @@ unsigned long int hideFeatherAt[NUM_KEYS] = {0, 0, 0, 0, 0, 0};
 elapsedMillis timer;         // master timer (auto-incrementing)
 int lastButtonPressed = -1;  // for random scales
 int lastNote = 0;            // for random scales
-int playMode = 10;           // TODO change back to 1
+int playMode = 10;
 /*
  * PLAY MODES:
  * 1 = major scale, random feathers
+ * 2 = pentatonic scale, random feathers
  * 10 = set track from SD card, random feathers
  */
 unsigned long int stopAudioTrackAt = 0;
@@ -156,17 +158,35 @@ void setup(void) {
 }
 
 void loop() {
+  potCode();
   buttonCode();
   servoCode();
 
   // stop SD audio track if applicable
-  if (playMode == 10 && stopAudioTrackAt != 0 && timer >= stopAudioTrackAt) {
+  if (stopAudioTrackAt != 0 && timer >= stopAudioTrackAt) {
     Serial.println("Stopping audio track");
     fade1.fadeOut(5000);
     stopAudioTrackAt = 0;
   }
 
   delay(10);
+}
+
+// POTENTIOMETER CODE
+#define NUM_MODES 3
+#define COEFFICIENT (1024 / NUM_MODES)
+void potCode() {
+  int pot = analogRead(POT_PIN);
+  if (pot < COEFFICIENT) {
+    // pot range -> major scale
+    playMode = 1;
+  } else if (pot < 2 * COEFFICIENT) {
+    // pot range -> pentatonic scale
+    playMode = 2;
+  } else {
+    // set track from SD card
+    playMode = 10;
+  }
 }
 
 // BUTTON CODE
@@ -186,11 +206,16 @@ void buttonCode() {
       int semitones;
       switch (playMode) {
         case 1:
+        case 2:
           // major scale
 
           // static scale
           //   int semitones = mapScale(PENTATONIC, i);
-          semitones = mapScale(MAJOR, i);
+          if (playMode == 1) {
+            semitones = mapScale(MAJOR, i);
+          } else if (playMode == 2) {
+            semitones = mapScale(PENTATONIC, i);
+          }
 
           // random melody
           //   lastNote = mapRandomScale(PENTATONIC, lastNote, i -
@@ -248,8 +273,8 @@ void servoCode() {
     }
   }
 
-  // (potentially) show random feather every 2-3 seconds
-  if (timer >= lastFeatherAction + random(2000, 3000)) {
+  // (potentially) show random feather every 2-5 seconds
+  if (timer >= lastFeatherAction + random(2000, 5000)) {
     lastFeatherAction = timer;
     int randomFeather = random(0, NUM_KEYS);
     // if feather is already shown, ignore
@@ -260,7 +285,7 @@ void servoCode() {
     Serial.println(randomFeather);
     pwm.setPWM(randomFeather, 0, FEATHER_SHOWN);
     hideFeatherAt[randomFeather] =
-        timer + random(2000, 4000);  // hide feather after 2-4 seconds
+        timer + random(800, 1000);  // hide feather after 0.8-1 seconds
   }
 }
 
