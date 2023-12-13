@@ -30,6 +30,16 @@
 
 enum SCALE_TYPE { MAJOR, MINOR, PENTATONIC };
 
+const float MOONLIGHT_SONATA[] = {
+    246.94, 329.63, 392.00, 246.94, 329.63, 392.00, 246.94, 329.63, 392.00,
+    246.94, 329.63, 392.00, 246.94, 329.63, 392.00, 246.94, 329.63, 392.00,
+    246.94, 329.63, 392.00, 246.94, 329.63, 392.00, 261.63, 329.63, 392.00,
+    261.63, 329.63, 392.00, 261.63, 349.23, 440.00, 261.63, 349.23, 440.00};
+const float FUR_ELISE[] = {659.25, 622.25, 659.25, 622.25, 659.25, 493.88,
+                           587.33, 523.25, 440.00, 164.81, 220.00, 261.63,
+                           329.63, 440.00, 493.88, 164.81, 207.65, 329.63,
+                           415.30, 493.88, 523.25, 164.81, 220.00, 329.63};
+
 // PINOUT
 #define BTN_1_PIN 32
 #define BTN_2_PIN 31
@@ -83,8 +93,12 @@ int playMode = 10;
  * 1 = major scale, random feathers
  * 2 = pentatonic scale, random feathers
  * 10 = set track from SD card, random feathers
+ * 20 = set frequency array - moonlight sonata
+ * 21 = set frequency array - fur elise
  */
-unsigned long int stopAudioTrackAt = 0;
+unsigned long int stopAudioTrackAt = 0;  // timestamp to stop SD audio track
+int freqTrackPos1 = 0;                   // position in set frequency array 1
+int freqTrackPos2 = 0;                   // position in set frequency array 2
 
 // PJRC CODE
 
@@ -173,7 +187,7 @@ void loop() {
 }
 
 // POTENTIOMETER CODE
-#define NUM_MODES 3
+#define NUM_MODES 5
 #define COEFFICIENT (1024 / NUM_MODES)
 void potCode() {
   int pot = analogRead(POT_PIN);
@@ -183,6 +197,10 @@ void potCode() {
   } else if (pot < 2 * COEFFICIENT) {
     // pot range -> pentatonic scale
     playMode = 2;
+  } else if (pot < 3 * COEFFICIENT) {
+    playMode = 20;
+  } else if (pot < 4 * COEFFICIENT) {
+    playMode = 21;
   } else {
     // set track from SD card
     playMode = 10;
@@ -250,6 +268,20 @@ void buttonCode() {
 
           stopAudioTrackAt = timer + 10000;  // stop track 10 sec later
 
+          break;
+
+        case 20:
+          waveform1.frequency(MOONLIGHT_SONATA[freqTrackPos1]);
+          envelope1.noteOn();
+          freqTrackPos1 =
+              (freqTrackPos1 + 1) % (sizeof(MOONLIGHT_SONATA) / sizeof(float));
+          break;
+
+        case 21:
+          waveform1.frequency(FUR_ELISE[freqTrackPos2]);
+          envelope1.noteOn();
+          freqTrackPos2 =
+              (freqTrackPos2 + 1) % (sizeof(FUR_ELISE) / sizeof(float));
           break;
 
         default:
