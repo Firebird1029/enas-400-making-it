@@ -34,7 +34,7 @@ enum SCALE_TYPE { MAJOR, MINOR, PENTATONIC };
 #define BTN_3_PIN 30
 #define BTN_4_PIN 29
 #define BTN_5_PIN 28
-#define BTN_6_PIN 33
+#define BTN_6_PIN 27
 
 // BUTTONS
 // TODO discard and switch to array

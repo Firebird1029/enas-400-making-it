@@ -46,7 +46,7 @@ const float FUR_ELISE[] = {659.25, 622.25, 659.25, 622.25, 659.25, 493.88,
 #define BTN_3_PIN 30
 #define BTN_4_PIN 29
 #define BTN_5_PIN 28
-#define BTN_6_PIN 33
+#define BTN_6_PIN 27
 #define POT_PIN 38
 
 // BUTTONS
